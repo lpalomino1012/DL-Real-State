@@ -266,10 +266,16 @@ const ContactForm = () => {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/contact', {
+      const response = await fetch('https://formspree.io/f/mreypjqq', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          ...formData,
+          _subject: `Nuevo Mensaje de Contacto: ${formData.name}`
+        }),
       });
 
       if (response.ok) {
@@ -396,23 +402,44 @@ const QuoteForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prepare data for Formspree
+    const servicesText = selectedServices
+      .map(id => SERVICES.find(s => s.id === id)?.title)
+      .filter(Boolean)
+      .join(", ");
+
+    const commonAreasText = Object.entries(formData.commonAreas)
+      .filter(([_, data]: [string, any]) => data.selected)
+      .map(([id, data]: [string, any]) => `${id}: ${data.quantity}`)
+      .join(", ");
+
+    const personnelText = Object.entries(formData.personnel)
+      .filter(([_, qty]: [string, any]) => qty > 0)
+      .map(([name, qty]: [string, any]) => `${name}: ${qty}`)
+      .join(", ");
+
+    const payload = {
+      ...formData,
+      servicios_solicitados: servicesText,
+      areas_comunes: commonAreasText,
+      personal_requerido: personnelText,
+      _subject: `Nueva Cotización: ${formData.name} - ${formData.buildingType}`
+    };
+
     try {
-      const response = await fetch('/api/quote', {
+      const response = await fetch('https://formspree.io/f/mreypjqq', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          formData,
-          selectedServices,
-          servicesList: SERVICES
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         setIsSubmitted(true);
       } else {
-        alert('Hubo un error al enviar la solicitud. Por favor, intente nuevamente.');
+        alert('Hubo un error al enviar la solicitud a Formspree.');
       }
     } catch (error) {
       console.error('Error submitting form:', error);
